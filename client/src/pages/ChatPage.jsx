@@ -66,19 +66,58 @@ export default function ChatPage() {
 	}
 
 	useEffect(() => {
-		const socket = io(SOCKET_URL, { transports: ['websocket'] })
+		const socket = io(SOCKET_URL, { 
+			transports: ['websocket', 'polling'],
+			reconnection: true,
+			reconnectionDelay: 1000,
+			reconnectionAttempts: 5
+		})
 		socketRef.current = socket
+		
 		socket.on('connect', () => {
+			console.log('Socket connected:', socket.id)
 			socket.emit('auth', { userId: user.id })
+			// Join rooms after authentication
+			if (roomsRef.current.length > 0) {
+				const roomIds = roomsRef.current.map(room => room._id)
+				socket.emit('join:rooms', { roomIds })
+			}
+		})
+		
+		socket.on('disconnect', () => {
+			console.log('Socket disconnected')
+		})
+		
+		socket.on('connect_error', (error) => {
+			console.error('Socket connection error:', error)
 		})
 		socket.on('message:new', ({ message }) => {
 			const roomId = resolveRoomId(message.room)
-			setRooms(prev => prev.map(room => room._id === roomId ? { ...room, latestMessage: message } : room))
-			ensureRoomsLoaded(roomId).catch(() => {})
+			if (!roomId) return
+			
+			// Update rooms list with latest message
+			setRooms(prev => {
+				const roomExists = prev.some(room => room._id === roomId)
+				if (roomExists) {
+					return prev.map(room => room._id === roomId ? { ...room, latestMessage: message } : room)
+				} else {
+					// Room not in list, fetch it
+					ensureRoomsLoaded(roomId).catch(() => {})
+					return prev
+				}
+			})
+			
+			// If this message is for the active room, add it to messages
 			if (roomId === activeRoomRef.current) {
 				setMessages(prev => {
 					const exists = prev.some(m => m._id === message._id)
-					return exists ? prev.map(m => (m._id === message._id ? message : m)) : [...prev, message]
+					if (exists) {
+						// Update existing message
+						return prev.map(m => (m._id === message._id ? message : m))
+					} else {
+						// Add new message
+						return [...prev, message]
+					}
 				})
 			}
 		})
@@ -129,9 +168,10 @@ export default function ChatPage() {
 
 	useEffect(() => {
 		const socket = socketRef.current
-		if (socket && rooms.length) {
+		if (socket && socket.connected && rooms.length) {
 			const roomIds = rooms.map(room => room._id)
 			socket.emit('join:rooms', { roomIds })
+			console.log('Joined rooms:', roomIds)
 		}
 	}, [rooms])
 
@@ -147,9 +187,13 @@ export default function ChatPage() {
 	const sendMessage = async (text) => {
 		if (!activeRoomId || !text.trim()) return
 		const { message } = await api.sendMessage({ roomId: activeRoomId, content: text })
-		setMessages(prev => [...prev, message])
+		// Message will be broadcast by server via Socket.io, so we don't need to emit here
+		// But we can optimistically add it for immediate UI update
+		setMessages(prev => {
+			const exists = prev.some(m => m._id === message._id)
+			return exists ? prev : [...prev, message]
+		})
 		setRooms(prev => prev.map(room => room._id === activeRoomId ? { ...room, latestMessage: message } : room))
-		socketRef.current?.emit('message:send', { message })
 	}
 
 	const setTypingState = (isTyping) => {
@@ -167,7 +211,10 @@ export default function ChatPage() {
 		const { room } = await api.createPrivate(contactId)
 		setRooms(prev => [...prev, room])
 		setActiveRoomId(room._id)
-		socketRef.current?.emit('join:rooms', { roomIds: [room._id] })
+		// Join the new room via Socket.io
+		if (socketRef.current?.connected) {
+			socketRef.current.emit('join:rooms', { roomIds: [room._id] })
+		}
 	}
 
 	const activeRoom = rooms.find(r => r._id === activeRoomId)

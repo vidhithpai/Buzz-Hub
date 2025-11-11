@@ -9,6 +9,7 @@ import chatRouter from './routes/chat.routes.js';
 import messageRouter from './routes/message.routes.js';
 import userRouter from './routes/user.routes.js';
 import { registerSocketHandlers } from './socket/index.js';
+import { setIO } from './lib/socket.js';
 
 dotenv.config();
 
@@ -21,6 +22,9 @@ const io = new SocketIOServer(server, {
     credentials: true
   }
 });
+
+// Store io instance for use in controllers
+setIO(io);
 
 // Middleware
 app.use(cors({ origin: process.env.CLIENT_ORIGIN || '*', credentials: true }));

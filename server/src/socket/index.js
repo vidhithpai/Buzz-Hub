@@ -40,6 +40,8 @@ export function registerSocketHandlers(io) {
 		});
 
 		socket.on('message:send', ({ message }) => {
+			// This handler is kept for backward compatibility
+			// But messages are now primarily broadcast from the REST API endpoint
 			if (!message) return;
 			const roomId = String(message.room?._id || message.room || '');
 			if (!roomId) return;
