@@ -7,6 +7,7 @@ import { connectToDatabase } from './lib/db.js';
 import authRouter from './routes/auth.routes.js';
 import chatRouter from './routes/chat.routes.js';
 import messageRouter from './routes/message.routes.js';
+import userRouter from './routes/user.routes.js';
 import { registerSocketHandlers } from './socket/index.js';
 
 dotenv.config();
@@ -34,6 +35,7 @@ app.get('/api/health', (_req, res) => {
 app.use('/api/auth', authRouter);
 app.use('/api/chats', chatRouter);
 app.use('/api/messages', messageRouter);
+app.use('/api/users', userRouter);
 
 // Socket.io
 registerSocketHandlers(io);

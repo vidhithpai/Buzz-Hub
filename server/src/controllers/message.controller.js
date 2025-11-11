@@ -9,9 +9,10 @@ export async function sendMessage(req, res) {
 	if (!room || !room.participants.map(String).includes(userId)) {
 		return res.status(404).json({ message: 'Room not found' });
 	}
-	const message = await Message.create({ room: roomId, sender: userId, content, deliveredTo: [userId], readBy: [userId] });
-	await ChatRoom.findByIdAndUpdate(roomId, { latestMessage: message._id });
-	return res.status(201).json({ message });
+	const message = await Message.create({ room: roomId, sender: userId, content, deliveredTo: [userId], readBy: [userId], sentAt: new Date() });
+	await ChatRoom.findByIdAndUpdate(roomId, { latestMessage: message._id, updatedAt: new Date() });
+	const populated = await Message.findById(message._id).populate('sender', 'name email avatarUrl');
+	return res.status(201).json({ message: populated });
 }
 
 export async function markDelivered(req, res) {

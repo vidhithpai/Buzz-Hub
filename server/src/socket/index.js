@@ -39,17 +39,11 @@ export function registerSocketHandlers(io) {
 			}
 		});
 
-		socket.on('message:send', async ({ roomId, senderId, content }) => {
-			if (!roomId || !senderId || !content) return;
-			const message = await Message.create({
-				room: roomId,
-				sender: senderId,
-				content,
-				deliveredTo: [senderId],
-				readBy: [senderId],
-				sentAt: new Date()
-			});
-			io.to(String(roomId)).emit('message:new', { message });
+		socket.on('message:send', ({ message }) => {
+			if (!message) return;
+			const roomId = String(message.room?._id || message.room || '');
+			if (!roomId) return;
+			io.to(roomId).emit('message:new', { message });
 		});
 
 		socket.on('message:delivered', async ({ messageId, userId }) => {

@@ -66,6 +66,12 @@ Open the printed URL (default `http://localhost:5173`).
 - Basic styling is inline for simplicity. You can swap for Tailwind/Chakra.
 - Security hardening (rate limiting, validation, production CORS) recommended for production.
 
+## Usage Tips
+1. Run both dev servers (`server` and `client`) and open `http://localhost:5173`.
+2. Sign up with two different accounts (second one can be in a private/incognito window).
+3. Each logged-in user sees others in the **Contacts** list; click **Chat** next to a contact to create a direct chat and begin messaging.
+4. Keep both tabs open to experience typing indicators, delivery/read receipts, and online presence in real time.
+
 
 
 

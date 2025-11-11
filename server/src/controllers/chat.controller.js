@@ -21,6 +21,7 @@ export async function createPrivateChat(req, res) {
 	if (!room) {
 		room = await ChatRoom.create({ isGroup: false, participants: [userId, participantId] });
 	}
+	room = await room.populate('participants', 'name email avatarUrl isOnline lastSeenAt');
 	return res.status(201).json({ room });
 }
 
@@ -35,7 +36,8 @@ export async function createGroupChat(req, res) {
 		isGroup: true,
 		participants: Array.from(new Set([userId, ...participantIds]))
 	});
-	return res.status(201).json({ room });
+	const populated = await room.populate('participants', 'name email avatarUrl isOnline lastSeenAt');
+	return res.status(201).json({ room: populated });
 }
 
 export async function getRoomMessages(req, res) {

@@ -19,6 +19,31 @@ export default function ChatWindow({ room, messages, onSend, onTyping, typing, m
 	const listRef = useRef(null)
 	const typingRef = useRef(false)
 	const typingTimeoutRef = useRef()
+	const otherParticipants = room ? room.participants.filter(p => p._id !== meId) : []
+	const onlineCount = room ? room.participants.filter(p => p.isOnline).length : 0
+	const statusText = typing
+		? 'Typing...'
+		: room
+			? room.isGroup
+				? `${onlineCount} online`
+				: otherParticipants[0]
+					? otherParticipants[0].isOnline
+						? 'Online'
+						: otherParticipants[0].lastSeenAt
+							? `Last seen ${new Date(otherParticipants[0].lastSeenAt).toLocaleString()}`
+							: 'Offline'
+					: ''
+			: ''
+
+	const hasUser = (array, userId) => (array || []).some(entry => {
+		if (!entry) return false
+		if (typeof entry === 'string') return entry === userId
+		if (typeof entry === 'object') {
+			if (entry._id) return entry._id === userId
+			if (entry.toString) return entry.toString() === userId
+		}
+		return false
+	})
 
 	useEffect(() => {
 		if (listRef.current) {
@@ -56,7 +81,7 @@ export default function ChatWindow({ room, messages, onSend, onTyping, typing, m
 		<div style={{ display: 'grid', gridTemplateRows: 'auto 1fr auto', height: '100%' }}>
 			<div style={{ padding: 16, borderBottom: '1px solid #1f2937' }}>
 				<div style={{ fontWeight: 700 }}>{room.isGroup ? (room.name || 'Group') : (room.participants.find(p => p._id !== meId)?.name || 'Direct')}</div>
-				<div style={{ fontSize: 12, color: '#94a3b8' }}>{typing ? 'Typing...' : 'Online'}</div>
+				<div style={{ fontSize: 12, color: '#94a3b8' }}>{statusText}</div>
 			</div>
 			<div ref={listRef} style={{ overflow: 'auto', padding: 8 }}>
 				{messages.map(m => (
@@ -65,8 +90,8 @@ export default function ChatWindow({ room, messages, onSend, onTyping, typing, m
 						mine={m.sender === meId || m.sender?._id === meId}
 						content={m.content}
 						timestamp={m.sentAt || m.createdAt}
-						delivered={(m.deliveredTo || []).includes(meId)}
-						read={(m.readBy || []).includes(meId)}
+						delivered={hasUser(m.deliveredTo, meId)}
+						read={hasUser(m.readBy, meId)}
 					/>
 				))}
 			</div>
