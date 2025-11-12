@@ -32,7 +32,7 @@ export default function LoginPage() {
 	return (
 		<div style={{ display: 'grid', placeItems: 'center', height: '100%' }}>
 			<form onSubmit={onSubmit} style={{ width: 360, display: 'grid', gap: 12, background: '#111827', padding: 24, borderRadius: 8 }}>
-				<h2 style={{ margin: 0 }}>Sign in to ChatNexus</h2>
+				<h2 style={{ margin: 0 }}>Sign in to BuzzHub</h2>
 				<input type="email" placeholder="Email" value={email} onChange={e => setEmail(e.target.value)} style={{ padding: 12, borderRadius: 6, border: '1px solid #374151', background: '#0b1220', color: '#e2e8f0' }} />
 				<input type="password" placeholder="Password" value={password} onChange={e => setPassword(e.target.value)} style={{ padding: 12, borderRadius: 6, border: '1px solid #374151', background: '#0b1220', color: '#e2e8f0' }} />
 				{error ? <div style={{ color: '#f87171' }}>{error}</div> : null}

@@ -1,8 +1,9 @@
 {
-  "name": "chatnexus-server",
+  "name": "buzzhub-server",
   "version": "1.0.0",
   "private": true,
   "type": "module",
+  "description": "BuzzHub server powering real-time chat APIs and socket events",
   "main": "src/index.js",
   "scripts": {
     "dev": "nodemon src/index.js",

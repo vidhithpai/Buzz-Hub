@@ -17,9 +17,7 @@ export function createApi(token) {
 		getMessages: (roomId) => instance.get(`/chats/${roomId}/messages`).then(r => r.data),
 		sendMessage: (payload) => instance.post('/messages', payload).then(r => r.data),
 		listUsers: () => instance.get('/users').then(r => r.data),
-		searchUser: (username) => instance.get('/users/search', { params: { username } }).then(r => r.data),
-		markDelivered: (messageId) => instance.post('/messages/delivered', { messageId }).then(r => r.data),
-		markRead: (messageId) => instance.post('/messages/read', { messageId }).then(r => r.data)
+		searchUser: (username) => instance.get('/users/search', { params: { username } }).then(r => r.data)
 	}
 }
 

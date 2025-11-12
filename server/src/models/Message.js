@@ -6,8 +6,6 @@ const messageSchema = new mongoose.Schema(
 		senderId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true, index: true },
 		senderName: { type: String, required: true, trim: true },
 		content: { type: String, required: true },
-		deliveredTo: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
-		readBy: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
 		sentAt: { type: Date, default: Date.now }
 	},
 	{ timestamps: true }

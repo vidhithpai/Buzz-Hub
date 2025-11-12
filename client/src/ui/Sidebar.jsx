@@ -36,8 +36,35 @@ export default function Sidebar({
 	};
 
 	return (
-		<div style={{ borderRight: '1px solid #1f2937', display: 'flex', flexDirection: 'column', height: '100%' }}>
-			<div style={{ padding: 16, borderBottom: '1px solid #1f2937', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+		<div
+			style={{
+				position: 'fixed',
+				top: 0,
+				left: 0,
+				width: 320,
+				height: '100vh',
+				borderRight: '1px solid #1f2937',
+				display: 'flex',
+				flexDirection: 'column',
+				background: '#020617',
+				overflow: 'hidden',
+				zIndex: 10
+			}}
+		>
+			<div
+				style={{
+					padding: 16,
+					borderBottom: '1px solid #1f2937',
+					display: 'flex',
+					alignItems: 'center',
+					justifyContent: 'space-between',
+					position: 'sticky',
+					top: 0,
+					background: '#0f172a',
+					zIndex: 1,
+					boxShadow: '0 2px 4px rgba(15, 23, 42, 0.4)'
+				}}
+			>
 				<div>
 					<div style={{ fontWeight: 600 }}>{user.name}</div>
 					{usernameLabel ? <div style={{ fontSize: 12, color: '#94a3b8' }}>{usernameLabel}</div> : null}
@@ -45,7 +72,7 @@ export default function Sidebar({
 				</div>
 				<button onClick={onLogout} style={{ background: '#ef4444', border: 0, color: 'white', padding: '6px 10px', borderRadius: 6 }}>Logout</button>
 			</div>
-			<div style={{ overflow: 'auto', flex: 1 }}>
+			<div style={{ overflowY: 'auto', flex: 1, paddingBottom: 24 }}>
 				<div style={{ padding: '12px 12px 4px', fontSize: 12, textTransform: 'uppercase', letterSpacing: 0.6, color: '#64748b' }}>Chats</div>
 				{rooms.map((room) => {
 					const isActive = room._id === activeRoomId;

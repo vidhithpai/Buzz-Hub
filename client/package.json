@@ -1,8 +1,9 @@
 {
-  "name": "chatnexus-client",
+  "name": "buzzhub-client",
   "private": true,
   "version": "1.0.0",
   "type": "module",
+  "description": "BuzzHub client application for real-time messaging",
   "scripts": {
     "dev": "vite",
     "start": "vite",

@@ -107,12 +107,6 @@ export default function ChatPage() {
 				})
 			}
 		})
-		socket.on('message:update', ({ message }) => {
-			const roomId = resolveRoomId(message.room)
-			if (roomId === activeRoomRef.current) {
-				setMessages(prev => prev.map(m => m._id === message._id ? message : m))
-			}
-		})
 		socket.on('typing:update', ({ roomId, userId, typing }) => {
 			setTyping(prev => ({
 				...prev,
@@ -307,7 +301,7 @@ export default function ChatPage() {
 	const activeTyping = Object.entries(typing[activeRoomId] || {}).some(([id, isTyping]) => isTyping && id !== user.id)
 
 	return (
-		<div style={{ display: 'grid', gridTemplateColumns: '320px 1fr', height: '100%' }}>
+		<div style={{ display: 'flex', height: '100vh', background: '#0f172a' }}>
 			<Sidebar
 				rooms={rooms}
 				activeRoomId={activeRoomId}
@@ -320,14 +314,18 @@ export default function ChatPage() {
 				user={user}
 				onLogout={logout}
 			/>
-			<ChatWindow
-				room={activeRoom}
-				messages={messages}
-				onSend={sendMessage}
-				onTyping={setTypingState}
-				typing={activeTyping}
-				meId={user.id}
-			/>
+			<div style={{ marginLeft: 320, flex: 1, minHeight: '100vh', display: 'flex' }}>
+				<div style={{ flex: 1 }}>
+					<ChatWindow
+						room={activeRoom}
+						messages={messages}
+						onSend={sendMessage}
+						onTyping={setTypingState}
+						typing={activeTyping}
+						meId={user.id}
+					/>
+				</div>
+			</div>
 		</div>
 	)
 }

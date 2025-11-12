@@ -52,7 +52,7 @@ export default function SignupPage() {
 	return (
 		<div style={{ display: 'grid', placeItems: 'center', height: '100%' }}>
 			<form onSubmit={onSubmit} style={{ width: 360, display: 'grid', gap: 12, background: '#111827', padding: 24, borderRadius: 8 }}>
-				<h2 style={{ margin: 0 }}>Create your ChatNexus account</h2>
+				<h2 style={{ margin: 0 }}>Create your BuzzHub account</h2>
 				<input placeholder="Name" value={name} onChange={e => setName(e.target.value)} style={{ padding: 12, borderRadius: 6, border: '1px solid #374151', background: '#0b1220', color: '#e2e8f0' }} />
 				<input placeholder="Username" value={username} onChange={e => setUsername(e.target.value)} style={{ padding: 12, borderRadius: 6, border: '1px solid #374151', background: '#0b1220', color: '#e2e8f0' }} />
 				<input type="email" placeholder="Email" value={email} onChange={e => setEmail(e.target.value)} style={{ padding: 12, borderRadius: 6, border: '1px solid #374151', background: '#0b1220', color: '#e2e8f0' }} />

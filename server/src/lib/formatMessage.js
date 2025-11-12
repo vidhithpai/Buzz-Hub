@@ -21,20 +21,6 @@ export function formatMessageDoc(message) {
 		senderId = sender.toString();
 	}
 
-	const normalizeIdArray = (arr) => {
-		if (!Array.isArray(arr)) return [];
-		return arr.map((item) => {
-			if (!item) return item;
-			if (typeof item === 'object' && item !== null && item._id) {
-				return item._id.toString();
-			}
-			if (typeof item === 'object' && item !== null && typeof item.toString === 'function') {
-				return item.toString();
-			}
-			return item;
-		});
-	};
-
 	return {
 		_id: doc._id,
 		id: doc._id,
@@ -43,8 +29,6 @@ export function formatMessageDoc(message) {
 		senderName: doc.senderName || senderDetails?.name || null,
 		senderUsername: doc.senderUsername || senderDetails?.username || null,
 		content: doc.content,
-		deliveredTo: normalizeIdArray(doc.deliveredTo),
-		readBy: normalizeIdArray(doc.readBy),
 		sentAt: doc.sentAt,
 		createdAt: doc.createdAt,
 		updatedAt: doc.updatedAt,

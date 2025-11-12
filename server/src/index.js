@@ -32,7 +32,7 @@ app.use(express.json());
 
 // Health
 app.get('/api/health', (_req, res) => {
-  res.json({ ok: true, service: 'ChatNexus API' });
+  res.json({ ok: true, service: 'BuzzHub API' });
 });
 
 // Routes
@@ -49,7 +49,7 @@ const PORT = process.env.PORT || 5000;
 await connectToDatabase(process.env.MONGO_URI);
 server.listen(PORT, () => {
   // eslint-disable-next-line no-console
-  console.log(`ChatNexus server listening on http://localhost:${PORT}`);
+  console.log(`BuzzHub server listening on http://localhost:${PORT}`);
 });
 
 

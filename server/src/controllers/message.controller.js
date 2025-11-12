@@ -16,8 +16,6 @@ export async function sendMessage(req, res) {
 		senderId: userId,
 		senderName: req.user.name,
 		content,
-		deliveredTo: [userId],
-		readBy: [userId],
 		sentAt: new Date()
 	});
 	await ChatRoom.findByIdAndUpdate(roomId, { latestMessage: message._id, updatedAt: new Date() });
@@ -31,28 +29,6 @@ export async function sendMessage(req, res) {
 	}
 	
 	return res.status(201).json({ message: formatted });
-}
-
-export async function markDelivered(req, res) {
-	const userId = req.user.id;
-	const { messageId } = req.body;
-	const msg = await Message.findByIdAndUpdate(
-		messageId,
-		{ $addToSet: { deliveredTo: userId } },
-		{ new: true }
-	).populate('senderId', 'name username email avatarUrl');
-	return res.json({ message: formatMessageDoc(msg) });
-}
-
-export async function markRead(req, res) {
-	const userId = req.user.id;
-	const { messageId } = req.body;
-	const msg = await Message.findByIdAndUpdate(
-		messageId,
-		{ $addToSet: { readBy: userId } },
-		{ new: true }
-	).populate('senderId', 'name username email avatarUrl');
-	return res.json({ message: formatMessageDoc(msg) });
 }
 
 

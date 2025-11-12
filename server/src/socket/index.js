@@ -57,28 +57,6 @@ export function registerSocketHandlers(io) {
 			io.to(roomId).emit('message:new', { message: payload });
 		});
 
-		socket.on('message:delivered', async ({ messageId, userId }) => {
-			const msg = await Message.findByIdAndUpdate(
-				messageId,
-				{ $addToSet: { deliveredTo: userId } },
-				{ new: true }
-			).populate('senderId', 'name username email avatarUrl');
-			if (msg) {
-				io.to(String(msg.room)).emit('message:update', { message: formatMessageDoc(msg) });
-			}
-		});
-
-		socket.on('message:read', async ({ messageId, userId }) => {
-			const msg = await Message.findByIdAndUpdate(
-				messageId,
-				{ $addToSet: { readBy: userId } },
-				{ new: true }
-			).populate('senderId', 'name username email avatarUrl');
-			if (msg) {
-				io.to(String(msg.room)).emit('message:update', { message: formatMessageDoc(msg) });
-			}
-		});
-
 		socket.on('typing:start', ({ roomId, userId }) => {
 			socket.to(String(roomId)).emit('typing:update', { roomId, userId, typing: true });
 		});

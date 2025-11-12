@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 
-function Bubble({ mine, content, timestamp, delivered, read, senderLabel, showSender }) {
+function Bubble({ mine, content, timestamp, senderLabel, showSender }) {
 	return (
 		<div style={{ display: 'flex', justifyContent: mine ? 'flex-end' : 'flex-start' }}>
 			<div style={{ maxWidth: 520, background: mine ? '#1d4ed8' : '#111827', color: 'white', padding: '8px 12px', borderRadius: 12, margin: '4px 8px' }}>
@@ -10,9 +10,8 @@ function Bubble({ mine, content, timestamp, delivered, read, senderLabel, showSe
 					</div>
 				) : null}
 				<div>{content}</div>
-				<div style={{ display: 'flex', gap: 8, alignItems: 'center', fontSize: 11, marginTop: 4, opacity: 0.85 }}>
+				<div style={{ display: 'flex', alignItems: 'center', fontSize: 11, marginTop: 4, opacity: 0.85 }}>
 					<span>{new Date(timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
-					<span>{read ? '✓✓' : delivered ? '✓' : ''}</span>
 				</div>
 			</div>
 		</div>
@@ -55,11 +54,6 @@ export default function ChatWindow({ room, messages, onSend, onTyping, typing, m
 		return ''
 	}
 
-	const hasUser = (array, userId) => (array || []).some(entry => {
-		if (!entry) return false
-		return resolveId(entry) === userId
-	})
-
 	useEffect(() => {
 		if (listRef.current) {
 			listRef.current.scrollTop = listRef.current.scrollHeight
@@ -93,15 +87,23 @@ export default function ChatWindow({ room, messages, onSend, onTyping, typing, m
 	}
 
 	return (
-		<div style={{ display: 'grid', gridTemplateRows: 'auto 1fr auto', height: '100%' }}>
-			<div style={{ padding: 16, borderBottom: '1px solid #1f2937' }}>
+		<div style={{ display: 'flex', flexDirection: 'column', height: '100%', position: 'relative' }}>
+			<div style={{ padding: 16, borderBottom: '1px solid #1f2937', flexShrink: 0 }}>
 				<div>
 					<div style={{ fontWeight: 700 }}>{roomTitle}</div>
 					{roomSubtitle ? <div style={{ fontSize: 12, color: '#94a3b8' }}>{roomSubtitle}</div> : null}
 				</div>
 				<div style={{ fontSize: 12, color: '#94a3b8', marginTop: 4 }}>{statusText}</div>
 			</div>
-			<div ref={listRef} style={{ overflow: 'auto', padding: 8 }}>
+			<div
+				ref={listRef}
+				style={{
+					flex: 1,
+					overflowY: 'auto',
+					padding: '8px 8px 88px',
+					scrollbarGutter: 'stable'
+				}}
+			>
 				{messages.map(m => {
 					const senderId = resolveId(m.senderId || m.sender)
 					const mine = senderId === meId
@@ -113,15 +115,25 @@ export default function ChatWindow({ room, messages, onSend, onTyping, typing, m
 							mine={mine}
 							content={m.content}
 							timestamp={m.sentAt || m.createdAt}
-							delivered={hasUser(m.deliveredTo, meId)}
-							read={hasUser(m.readBy, meId)}
 							senderLabel={senderLabel}
 							showSender={showSender}
 						/>
 					)
 				})}
 			</div>
-			<form onSubmit={submit} style={{ display: 'flex', gap: 8, padding: 8, borderTop: '1px solid #1f2937' }}>
+			<form
+				onSubmit={submit}
+				style={{
+					display: 'flex',
+					gap: 8,
+					padding: 12,
+					borderTop: '1px solid #1f2937',
+					background: '#0f172a',
+					position: 'sticky',
+					bottom: 0,
+					flexShrink: 0
+				}}
+			>
 				<input value={text} onChange={e => handleInput(e.target.value)} placeholder="Type a message" style={{ flex: 1, padding: 12, borderRadius: 6, border: '1px solid #374151', background: '#0b1220', color: '#e2e8f0' }} />
 				<button style={{ padding: '0 16px', borderRadius: 6, background: '#2563eb', border: 0, color: 'white' }}>Send</button>
 			</form>
