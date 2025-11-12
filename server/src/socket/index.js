@@ -1,5 +1,6 @@
 import { User } from '../models/User.js';
 import { Message } from '../models/Message.js';
+import { formatMessageDoc } from '../lib/formatMessage.js';
 
 const userIdToSocketIds = new Map(); // userId -> Set(socketId)
 const socketIdToUserId = new Map(); // socketId -> userId
@@ -39,13 +40,21 @@ export function registerSocketHandlers(io) {
 			}
 		});
 
-		socket.on('message:send', ({ message }) => {
+		socket.on('message:send', async ({ message }) => {
 			// This handler is kept for backward compatibility
 			// But messages are now primarily broadcast from the REST API endpoint
 			if (!message) return;
 			const roomId = String(message.room?._id || message.room || '');
 			if (!roomId) return;
-			io.to(roomId).emit('message:new', { message });
+
+			let payload = message;
+			if (message._id) {
+				const doc = await Message.findById(message._id).populate('senderId', 'name username email avatarUrl');
+				if (doc) {
+					payload = formatMessageDoc(doc);
+				}
+			}
+			io.to(roomId).emit('message:new', { message: payload });
 		});
 
 		socket.on('message:delivered', async ({ messageId, userId }) => {
@@ -53,9 +62,9 @@ export function registerSocketHandlers(io) {
 				messageId,
 				{ $addToSet: { deliveredTo: userId } },
 				{ new: true }
-			);
+			).populate('senderId', 'name username email avatarUrl');
 			if (msg) {
-				io.to(String(msg.room)).emit('message:update', { message: msg });
+				io.to(String(msg.room)).emit('message:update', { message: formatMessageDoc(msg) });
 			}
 		});
 
@@ -64,9 +73,9 @@ export function registerSocketHandlers(io) {
 				messageId,
 				{ $addToSet: { readBy: userId } },
 				{ new: true }
-			);
+			).populate('senderId', 'name username email avatarUrl');
 			if (msg) {
-				io.to(String(msg.room)).emit('message:update', { message: msg });
+				io.to(String(msg.room)).emit('message:update', { message: formatMessageDoc(msg) });
 			}
 		});
 

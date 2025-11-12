@@ -1,9 +1,14 @@
 import { useEffect, useRef, useState } from 'react'
 
-function Bubble({ mine, content, timestamp, delivered, read }) {
+function Bubble({ mine, content, timestamp, delivered, read, senderLabel, showSender }) {
 	return (
 		<div style={{ display: 'flex', justifyContent: mine ? 'flex-end' : 'flex-start' }}>
 			<div style={{ maxWidth: 520, background: mine ? '#1d4ed8' : '#111827', color: 'white', padding: '8px 12px', borderRadius: 12, margin: '4px 8px' }}>
+				{showSender ? (
+					<div style={{ fontWeight: 600, color: mine ? '#bfdbfe' : '#38bdf8', marginBottom: 4 }}>
+						{senderLabel || 'Unknown'}
+					</div>
+				) : null}
 				<div>{content}</div>
 				<div style={{ display: 'flex', gap: 8, alignItems: 'center', fontSize: 11, marginTop: 4, opacity: 0.85 }}>
 					<span>{new Date(timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
@@ -21,6 +26,13 @@ export default function ChatWindow({ room, messages, onSend, onTyping, typing, m
 	const typingTimeoutRef = useRef()
 	const otherParticipants = room ? room.participants.filter(p => p._id !== meId) : []
 	const onlineCount = room ? room.participants.filter(p => p.isOnline).length : 0
+	const primaryOther = otherParticipants[0] || null
+	const roomTitle = room
+		? room.isGroup
+			? (room.name || 'Group')
+			: (primaryOther?.name || (primaryOther?.username ? `@${primaryOther.username}` : 'Direct'))
+		: 'Direct'
+	const roomSubtitle = !room?.isGroup && primaryOther?.name ? `@${primaryOther.username}` : ''
 	const statusText = typing
 		? 'Typing...'
 		: room
@@ -35,14 +47,17 @@ export default function ChatWindow({ room, messages, onSend, onTyping, typing, m
 					: ''
 			: ''
 
+	const resolveId = (value) => {
+		if (!value) return ''
+		if (typeof value === 'string') return value
+		if (value._id) return value._id
+		if (typeof value.toString === 'function') return value.toString()
+		return ''
+	}
+
 	const hasUser = (array, userId) => (array || []).some(entry => {
 		if (!entry) return false
-		if (typeof entry === 'string') return entry === userId
-		if (typeof entry === 'object') {
-			if (entry._id) return entry._id === userId
-			if (entry.toString) return entry.toString() === userId
-		}
-		return false
+		return resolveId(entry) === userId
 	})
 
 	useEffect(() => {
@@ -80,20 +95,31 @@ export default function ChatWindow({ room, messages, onSend, onTyping, typing, m
 	return (
 		<div style={{ display: 'grid', gridTemplateRows: 'auto 1fr auto', height: '100%' }}>
 			<div style={{ padding: 16, borderBottom: '1px solid #1f2937' }}>
-				<div style={{ fontWeight: 700 }}>{room.isGroup ? (room.name || 'Group') : (room.participants.find(p => p._id !== meId)?.name || 'Direct')}</div>
-				<div style={{ fontSize: 12, color: '#94a3b8' }}>{statusText}</div>
+				<div>
+					<div style={{ fontWeight: 700 }}>{roomTitle}</div>
+					{roomSubtitle ? <div style={{ fontSize: 12, color: '#94a3b8' }}>{roomSubtitle}</div> : null}
+				</div>
+				<div style={{ fontSize: 12, color: '#94a3b8', marginTop: 4 }}>{statusText}</div>
 			</div>
 			<div ref={listRef} style={{ overflow: 'auto', padding: 8 }}>
-				{messages.map(m => (
-					<Bubble
-						key={m._id}
-						mine={m.sender === meId || m.sender?._id === meId}
-						content={m.content}
-						timestamp={m.sentAt || m.createdAt}
-						delivered={hasUser(m.deliveredTo, meId)}
-						read={hasUser(m.readBy, meId)}
-					/>
-				))}
+				{messages.map(m => {
+					const senderId = resolveId(m.senderId || m.sender)
+					const mine = senderId === meId
+					const senderLabel = m.senderName || m.sender?.name || m.senderUsername || m.sender?.username || ''
+					const showSender = room.isGroup
+					return (
+						<Bubble
+							key={m._id}
+							mine={mine}
+							content={m.content}
+							timestamp={m.sentAt || m.createdAt}
+							delivered={hasUser(m.deliveredTo, meId)}
+							read={hasUser(m.readBy, meId)}
+							senderLabel={senderLabel}
+							showSender={showSender}
+						/>
+					)
+				})}
 			</div>
 			<form onSubmit={submit} style={{ display: 'flex', gap: 8, padding: 8, borderTop: '1px solid #1f2937' }}>
 				<input value={text} onChange={e => handleInput(e.target.value)} placeholder="Type a message" style={{ flex: 1, padding: 12, borderRadius: 6, border: '1px solid #374151', background: '#0b1220', color: '#e2e8f0' }} />

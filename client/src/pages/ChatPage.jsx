@@ -18,16 +18,17 @@ export default function ChatPage() {
 	const { token, user, logout } = useAuth()
 	const api = useMemo(() => createApi(token), [token])
 	const [rooms, setRooms] = useState([])
-	const [contacts, setContacts] = useState([])
 	const [activeRoomId, setActiveRoomId] = useState('')
 	const [messages, setMessages] = useState([])
 	const [typing, setTyping] = useState({})
+	const [searchStatus, setSearchStatus] = useState('idle')
+	const [searchMessage, setSearchMessage] = useState('')
+	const [searchError, setSearchError] = useState('')
 	const socketRef = useRef(null)
 	const activeRoomRef = useRef('')
 	const roomsRef = useRef([])
-	const contactsRef = useRef([])
 	const fetchingRoomsRef = useRef(false)
-	const fetchingContactsRef = useRef(false)
+	const searchLoading = searchStatus === 'loading'
 
 	useEffect(() => {
 		activeRoomRef.current = activeRoomId
@@ -36,10 +37,6 @@ export default function ChatPage() {
 	useEffect(() => {
 		roomsRef.current = rooms
 	}, [rooms])
-
-	useEffect(() => {
-		contactsRef.current = contacts
-	}, [contacts])
 
 	const ensureRoomsLoaded = async (roomId) => {
 		if (!roomId) return
@@ -51,17 +48,6 @@ export default function ChatPage() {
 			setRooms(rooms)
 		} finally {
 			fetchingRoomsRef.current = false
-		}
-	}
-
-	const ensureContactsLoaded = async () => {
-		if (fetchingContactsRef.current) return
-		fetchingContactsRef.current = true
-		try {
-			const { users } = await api.listUsers()
-			setContacts(users)
-		} finally {
-			fetchingContactsRef.current = false
 		}
 	}
 
@@ -138,10 +124,6 @@ export default function ChatPage() {
 				...room,
 				participants: room.participants.map(person => person._id === userId ? { ...person, isOnline } : person)
 			})))
-			setContacts(prev => prev.map(person => person._id === userId ? { ...person, isOnline } : person))
-			if (!contactsRef.current.some(person => person._id === userId)) {
-				ensureContactsLoaded().catch(() => {})
-			}
 		})
 		return () => {
 			socket.disconnect()
@@ -152,10 +134,9 @@ export default function ChatPage() {
 		let cancelled = false
 		;(async () => {
 			try {
-				const [{ rooms }, { users }] = await Promise.all([api.listChats(), api.listUsers()])
+				const { rooms } = await api.listChats()
 				if (cancelled) return
 				setRooms(rooms)
-				setContacts(users)
 				if (rooms.length && !activeRoomRef.current) {
 					setActiveRoomId(rooms[0]._id)
 				}
@@ -203,10 +184,10 @@ export default function ChatPage() {
 	}
 
 	const startDirectChat = async (contactId) => {
-		const existing = rooms.find(room => !room.isGroup && room.participants.some(p => p._id === contactId))
+		const existing = roomsRef.current.find(room => !room.isGroup && room.participants.some(p => p._id === contactId))
 		if (existing) {
 			setActiveRoomId(existing._id)
-			return
+			return { status: 'existing', room: existing }
 		}
 		const { room } = await api.createPrivate(contactId)
 		setRooms(prev => [...prev, room])
@@ -214,6 +195,111 @@ export default function ChatPage() {
 		// Join the new room via Socket.io
 		if (socketRef.current?.connected) {
 			socketRef.current.emit('join:rooms', { roomIds: [room._id] })
+		}
+		return { status: 'created', room }
+	}
+
+	const startGroupChatWithUser = async (initialUser) => {
+		const groupName = window.prompt('Enter group name')
+		if (!groupName || !groupName.trim()) {
+			return { status: 'cancelled' }
+		}
+		const cleanedName = groupName.trim()
+		const participantIds = new Set()
+		const initialId = initialUser.id || initialUser._id
+		if (initialId && initialId !== user.id) {
+			participantIds.add(initialId)
+		}
+		const additionalInput = window.prompt('Enter additional usernames separated by commas (optional)')
+		if (additionalInput) {
+			const extras = additionalInput
+				.split(',')
+				.map(name => name.trim())
+				.filter(Boolean)
+			const seenUsernames = new Set()
+			for (const extra of extras) {
+				const normalized = extra.toLowerCase()
+				if (normalized === user.username.toLowerCase()) continue
+				if (normalized === (initialUser.username || '').toLowerCase()) continue
+				if (seenUsernames.has(normalized)) continue
+				seenUsernames.add(normalized)
+				try {
+					const { user: extraUser } = await api.searchUser(extra)
+					const extraId = extraUser.id || extraUser._id
+					if (extraId && extraId !== user.id) {
+						participantIds.add(extraId)
+					}
+				} catch (err) {
+					const message = err?.response?.status === 404 ? `User not found: ${extra}` : err?.response?.data?.message || 'Failed to resolve participant'
+					return { status: 'error', error: message }
+				}
+			}
+		}
+		const uniqueIds = Array.from(participantIds)
+		if (uniqueIds.length === 0) {
+			return { status: 'error', error: 'At least one other participant required' }
+		}
+		try {
+			const { room } = await api.createGroup(cleanedName, uniqueIds)
+			setRooms(prev => [...prev, room])
+			setActiveRoomId(room._id)
+			if (socketRef.current?.connected) {
+				socketRef.current.emit('join:rooms', { roomIds: [room._id] })
+			}
+			return { status: 'success', message: `Group chat "${room.name || cleanedName}" created` }
+		} catch (err) {
+			const message = err?.response?.data?.message || 'Failed to create group chat'
+			return { status: 'error', error: message }
+		}
+	}
+
+	const handleUsernameAction = async (rawUsername, mode) => {
+		const trimmed = rawUsername.trim()
+		if (!trimmed) return
+		setSearchStatus('loading')
+		setSearchMessage('')
+		setSearchError('')
+		try {
+			const { user: foundUser } = await api.searchUser(trimmed)
+			const targetId = foundUser.id || foundUser._id
+			if (!targetId) {
+				setSearchStatus('error')
+				setSearchError('User not found.')
+				return
+			}
+			if (targetId === user.id) {
+				setSearchStatus('error')
+				setSearchError('Cannot start a chat with yourself')
+				return
+			}
+			if (mode === 'direct') {
+				const result = await startDirectChat(targetId)
+				const message = result?.status === 'existing'
+					? `You already have a chat with @${foundUser.username}`
+					: `Direct chat ready with @${foundUser.username}`
+				setSearchStatus('success')
+				setSearchMessage(message)
+			} else {
+				const outcome = await startGroupChatWithUser(foundUser)
+				if (outcome.status === 'success') {
+					setSearchStatus('success')
+					setSearchMessage(outcome.message || `Group chat created with @${foundUser.username}`)
+				} else if (outcome.status === 'cancelled') {
+					setSearchStatus('idle')
+				} else {
+					setSearchStatus('error')
+					setSearchError(outcome.error || 'Failed to create group chat')
+				}
+			}
+		} catch (err) {
+			if (err?.response?.status === 404) {
+				setSearchError('User not found.')
+			} else if (err?.response?.data?.message) {
+				setSearchError(err.response.data.message)
+			} else {
+				setSearchError('Search failed')
+			}
+			setSearchStatus('error')
 		}
 	}
 
@@ -224,10 +310,13 @@ export default function ChatPage() {
 		<div style={{ display: 'grid', gridTemplateColumns: '320px 1fr', height: '100%' }}>
 			<Sidebar
 				rooms={rooms}
-				contacts={contacts}
 				activeRoomId={activeRoomId}
 				onSelect={setActiveRoomId}
-				onStartChat={startDirectChat}
+				onUsernameAction={handleUsernameAction}
+				searchStatus={searchStatus}
+				searchMessage={searchMessage}
+				searchError={searchError}
+				searchLoading={searchLoading}
 				user={user}
 				onLogout={logout}
 			/>

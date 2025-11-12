@@ -9,7 +9,13 @@ export async function authMiddleware(req, res, next) {
 		const decoded = jwt.verify(token, process.env.JWT_SECRET);
 		const user = await User.findById(decoded.sub);
 		if (!user) return res.status(401).json({ message: 'Invalid token' });
-		req.user = { id: user._id.toString(), email: user.email, name: user.name };
+		req.user = {
+			id: user._id.toString(),
+			email: user.email,
+			name: user.name,
+			username: user.username,
+			avatarUrl: user.avatarUrl
+		};
 		next();
 	} catch (err) {
 		return res.status(401).json({ message: 'Unauthorized' });
