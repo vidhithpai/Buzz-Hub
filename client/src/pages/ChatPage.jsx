@@ -26,6 +26,8 @@ export default function ChatPage() {
 	const [searchError, setSearchError] = useState('')
 	const [isSidebarOpen, setSidebarOpen] = useState(true)
 	const [isMobile, setIsMobile] = useState(false)
+	const [isProfilePanelOpen, setProfilePanelOpen] = useState(false)
+	const [isNewChatPanelOpen, setNewChatPanelOpen] = useState(false)
 	const socketRef = useRef(null)
 	const activeRoomRef = useRef('')
 	const roomsRef = useRef([])
@@ -314,14 +316,84 @@ export default function ChatPage() {
 
 	useEffect(() => {
 		setSidebarOpen(!isMobile)
+		if (isMobile) {
+			setProfilePanelOpen(false)
+		}
 	}, [isMobile])
 
+	const closeSidebar = () => {
+		setSidebarOpen(false)
+		setProfilePanelOpen(false)
+		setNewChatPanelOpen(false)
+	}
+
 	const toggleSidebar = () => {
-		setSidebarOpen(prev => !prev)
+		setSidebarOpen(prev => {
+			const next = !prev
+			if (next) {
+				setProfilePanelOpen(false)
+				setNewChatPanelOpen(false)
+			}
+			return next
+		})
+	}
+
+	const toggleProfilePanel = () => {
+		setProfilePanelOpen(prev => {
+			if (prev) {
+				setSidebarOpen(true)
+				return false
+			}
+			setSidebarOpen(false)
+			setNewChatPanelOpen(false)
+			return true
+		})
+	}
+
+	const closeProfilePanel = () => {
+		setProfilePanelOpen(false)
+		setSidebarOpen(true)
+	}
+
+	const toggleNewChatPanel = () => {
+		setNewChatPanelOpen(prev => {
+			if (prev) {
+				setSidebarOpen(true)
+				return false
+			}
+			setSidebarOpen(false)
+			setProfilePanelOpen(false)
+			return true
+		})
+	}
+
+	const closeNewChatPanel = () => {
+		setNewChatPanelOpen(false)
+		setSidebarOpen(true)
+	}
+
+	const handleNewGroupChat = async () => {
+		// Trigger the group chat flow using the existing function
+		const result = await startGroupChatWithUser({})
+		if (result?.status === 'success' || result?.status === 'cancelled') {
+			setNewChatPanelOpen(false)
+			setSidebarOpen(true)
+		}
+	}
+
+	const handleNewDirectChat = async (username) => {
+		if (!username || !username.trim()) return
+		try {
+			await handleUsernameAction(username, 'direct')
+			setNewChatPanelOpen(false)
+			setSidebarOpen(true)
+		} catch (err) {
+			console.error('Failed to start direct chat:', err)
+		}
 	}
 
 	const railWidth = 72
-	const drawerWidth = 320
+	const drawerWidth = 350
 
 	const shellStyle = {
 		width: railWidth,
@@ -362,6 +434,25 @@ export default function ChatPage() {
 		background: '#e2e8f0',
 		borderRadius: 999
 	}
+
+	const newChatIcon = (
+		<svg width="22" height="22" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+			<path
+				d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"
+				stroke="#cbd5f5"
+				strokeWidth="1.5"
+				strokeLinecap="round"
+				strokeLinejoin="round"
+			/>
+			<path
+				d="M12 8v8M8 12h8"
+				stroke="#cbd5f5"
+				strokeWidth="1.5"
+				strokeLinecap="round"
+				strokeLinejoin="round"
+			/>
+		</svg>
+	)
 
 	const settingsIcon = (
 		<svg width="22" height="22" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -425,13 +516,23 @@ export default function ChatPage() {
 					</button>
 					<button
 						type="button"
+						onClick={toggleNewChatPanel}
+						style={shellButtonStyle}
+						aria-label="New chat"
+					>
+						{newChatIcon}
+					</button>
+					<button
+						type="button"
 						style={shellButtonStyle}
 						aria-label="Open settings"
 					>
 						{settingsIcon}
 					</button>
 				</div>
-				<div
+				<button
+					type="button"
+					onClick={toggleProfilePanel}
 					style={{
 						width: 48,
 						height: 48,
@@ -440,11 +541,14 @@ export default function ChatPage() {
 						background: '#1e293b',
 						display: 'flex',
 						alignItems: 'center',
-						justifyContent: 'center'
+						justifyContent: 'center',
+						cursor: 'pointer',
+						padding: 0
 					}}
+					aria-label="Open profile"
 				>
 					{profileIcon}
-				</div>
+				</button>
 			</div>
 			<Sidebar
 				rooms={rooms}
@@ -459,10 +563,16 @@ export default function ChatPage() {
 				onLogout={logout}
 				isOpen={isSidebarOpen}
 				isMobile={isMobile}
-				onClose={() => setSidebarOpen(false)}
+				onClose={closeSidebar}
 				onToggleSidebar={toggleSidebar}
 				railWidth={railWidth}
 				drawerWidth={drawerWidth}
+				isProfilePanelOpen={isProfilePanelOpen}
+				onCloseProfilePanel={closeProfilePanel}
+				isNewChatPanelOpen={isNewChatPanelOpen}
+				onCloseNewChatPanel={closeNewChatPanel}
+				onNewGroupChat={handleNewGroupChat}
+				onNewDirectChat={handleNewDirectChat}
 			/>
 			<div style={chatAreaStyle}>
 				<div style={{ flex: 1 }}>
