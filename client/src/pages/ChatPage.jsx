@@ -28,6 +28,7 @@ export default function ChatPage() {
 	const [isMobile, setIsMobile] = useState(false)
 	const [isProfilePanelOpen, setProfilePanelOpen] = useState(false)
 	const [isNewChatPanelOpen, setNewChatPanelOpen] = useState(false)
+	const [activeView, setActiveView] = useState('chats') // 'chats', 'chat', 'profile', 'newchat'
 	const socketRef = useRef(null)
 	const activeRoomRef = useRef('')
 	const roomsRef = useRef([])
@@ -315,61 +316,120 @@ export default function ChatPage() {
 	}, [])
 
 	useEffect(() => {
-		setSidebarOpen(!isMobile)
 		if (isMobile) {
+			setSidebarOpen(false)
 			setProfilePanelOpen(false)
+			setNewChatPanelOpen(false)
+			setActiveView(activeRoomId ? 'chat' : 'chats')
+		} else {
+			setSidebarOpen(true)
 		}
 	}, [isMobile])
+
+	useEffect(() => {
+		if (isMobile && activeRoomId) {
+			setActiveView('chat')
+			setSidebarOpen(false)
+			setProfilePanelOpen(false)
+			setNewChatPanelOpen(false)
+		} else if (isMobile && !activeRoomId) {
+			setActiveView('chats')
+		}
+	}, [activeRoomId, isMobile])
+
+	const handleSelect = (roomId) => {
+		setActiveRoomId(roomId)
+		if (isMobile) {
+			setSidebarOpen(false)
+			setProfilePanelOpen(false)
+			setNewChatPanelOpen(false)
+			setActiveView('chat')
+		}
+	}
 
 	const closeSidebar = () => {
 		setSidebarOpen(false)
 		setProfilePanelOpen(false)
 		setNewChatPanelOpen(false)
+		if (isMobile) {
+			setActiveView(activeRoomId ? 'chat' : 'chats')
+		}
 	}
 
 	const toggleSidebar = () => {
-		setSidebarOpen(prev => {
-			const next = !prev
-			if (next) {
-				setProfilePanelOpen(false)
-				setNewChatPanelOpen(false)
-			}
-			return next
-		})
+		if (isMobile) {
+			setSidebarOpen(true)
+			setProfilePanelOpen(false)
+			setNewChatPanelOpen(false)
+			setActiveView('chats')
+		} else {
+			setSidebarOpen(prev => {
+				const next = !prev
+				if (next) {
+					setProfilePanelOpen(false)
+					setNewChatPanelOpen(false)
+				}
+				return next
+			})
+		}
 	}
 
 	const toggleProfilePanel = () => {
-		setProfilePanelOpen(prev => {
-			if (prev) {
-				setSidebarOpen(true)
-				return false
-			}
+		if (isMobile) {
+			setProfilePanelOpen(true)
 			setSidebarOpen(false)
 			setNewChatPanelOpen(false)
-			return true
-		})
+			setActiveView('profile')
+		} else {
+			setProfilePanelOpen(prev => {
+				if (prev) {
+					setSidebarOpen(true)
+					return false
+				}
+				setSidebarOpen(false)
+				setNewChatPanelOpen(false)
+				return true
+			})
+		}
 	}
 
 	const closeProfilePanel = () => {
 		setProfilePanelOpen(false)
-		setSidebarOpen(true)
+		if (isMobile) {
+			setActiveView(activeRoomId ? 'chat' : 'chats')
+			setSidebarOpen(!activeRoomId)
+		} else {
+			setSidebarOpen(true)
+		}
 	}
 
 	const toggleNewChatPanel = () => {
-		setNewChatPanelOpen(prev => {
-			if (prev) {
-				setSidebarOpen(true)
-				return false
-			}
+		if (isMobile) {
+			setNewChatPanelOpen(true)
 			setSidebarOpen(false)
 			setProfilePanelOpen(false)
-			return true
-		})
+			setActiveView('newchat')
+		} else {
+			setNewChatPanelOpen(prev => {
+				if (prev) {
+					setSidebarOpen(true)
+					return false
+				}
+				setSidebarOpen(false)
+				setProfilePanelOpen(false)
+				return true
+			})
+		}
 	}
 
 	const closeNewChatPanel = () => {
 		setNewChatPanelOpen(false)
-		setSidebarOpen(true)
+		if (isMobile) {
+			setActiveView(activeRoomId ? 'chat' : 'chats')
+			setSidebarOpen(!activeRoomId)
+		} else {
+			setSidebarOpen(true)
+		}
 	}
 
 	const handleNewGroupChat = async () => {
@@ -377,7 +437,12 @@ export default function ChatPage() {
 		const result = await startGroupChatWithUser({})
 		if (result?.status === 'success' || result?.status === 'cancelled') {
 			setNewChatPanelOpen(false)
-			setSidebarOpen(true)
+			if (isMobile) {
+				setActiveView(activeRoomId ? 'chat' : 'chats')
+				setSidebarOpen(!activeRoomId)
+			} else {
+				setSidebarOpen(true)
+			}
 		}
 	}
 
@@ -386,7 +451,12 @@ export default function ChatPage() {
 		try {
 			await handleUsernameAction(username, 'direct')
 			setNewChatPanelOpen(false)
-			setSidebarOpen(true)
+			if (isMobile) {
+				setActiveView(activeRoomId ? 'chat' : 'chats')
+				setSidebarOpen(!activeRoomId)
+			} else {
+				setSidebarOpen(true)
+			}
 		} catch (err) {
 			console.error('Failed to start direct chat:', err)
 		}
@@ -416,6 +486,8 @@ export default function ChatPage() {
 	}
 
 	const shellButtonStyle = {
+		minWidth: 44,
+		minHeight: 44,
 		width: 44,
 		height: 44,
 		borderRadius: 16,
@@ -425,7 +497,9 @@ export default function ChatPage() {
 		alignItems: 'center',
 		justifyContent: 'center',
 		cursor: 'pointer',
-		boxShadow: '0 6px 18px rgba(15, 23, 42, 0.45)'
+		boxShadow: '0 6px 18px rgba(15, 23, 42, 0.45)',
+		touchAction: 'manipulation',
+		transition: 'transform 0.1s, background 0.2s'
 	}
 
 	const hamburgerLineStyle = {
@@ -492,12 +566,25 @@ export default function ChatPage() {
 		</svg>
 	)
 
+	// Mobile view switching logic
+	const shouldShowSidebar = isMobile ? (activeView === 'chats' || activeView === 'profile' || activeView === 'newchat') : isSidebarOpen
+	const shouldShowChatWindow = isMobile ? (activeView === 'chat') : true
+	
 	const chatAreaStyle = {
 		marginLeft: isMobile ? 0 : railWidth,
 		flex: 1,
 		minHeight: '100vh',
-		display: 'flex',
-		transition: 'margin-left 0.3s ease-in-out'
+		maxHeight: '100vh',
+		height: '100vh',
+		display: shouldShowChatWindow ? 'flex' : 'none',
+		transition: 'margin-left 0.3s ease-in-out',
+		overflow: 'hidden',
+		width: isMobile ? `calc(100vw - ${railWidth}px)` : 'auto',
+		boxSizing: 'border-box',
+		position: isMobile ? 'absolute' : 'relative',
+		top: isMobile ? 0 : 'auto',
+		left: isMobile ? railWidth : 'auto',
+		zIndex: isMobile ? 20 : 'auto'
 	}
 
 	return (
@@ -534,6 +621,8 @@ export default function ChatPage() {
 					type="button"
 					onClick={toggleProfilePanel}
 					style={{
+						minWidth: 48,
+						minHeight: 48,
 						width: 48,
 						height: 48,
 						borderRadius: 16,
@@ -543,7 +632,9 @@ export default function ChatPage() {
 						alignItems: 'center',
 						justifyContent: 'center',
 						cursor: 'pointer',
-						padding: 0
+						padding: 0,
+						touchAction: 'manipulation',
+						transition: 'transform 0.1s, background 0.2s'
 					}}
 					aria-label="Open profile"
 				>
@@ -553,7 +644,7 @@ export default function ChatPage() {
 			<Sidebar
 				rooms={rooms}
 				activeRoomId={activeRoomId}
-				onSelect={setActiveRoomId}
+				onSelect={handleSelect}
 				onUsernameAction={handleUsernameAction}
 				searchStatus={searchStatus}
 				searchMessage={searchMessage}
@@ -561,7 +652,7 @@ export default function ChatPage() {
 				searchLoading={searchLoading}
 				user={user}
 				onLogout={logout}
-				isOpen={isSidebarOpen}
+				isOpen={shouldShowSidebar}
 				isMobile={isMobile}
 				onClose={closeSidebar}
 				onToggleSidebar={toggleSidebar}

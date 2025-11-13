@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 
 export default function Sidebar({
 	rooms,
@@ -27,6 +27,10 @@ export default function Sidebar({
 	const [usernameInput, setUsernameInput] = useState('');
 	const [newChatSearchInput, setNewChatSearchInput] = useState('');
 	const usernameLabel = user.username ? `@${user.username}` : '';
+	const sidebarRef = useRef(null);
+	const touchStartX = useRef(0);
+	const touchStartY = useRef(0);
+	const isDragging = useRef(false);
 
 	useEffect(() => {
 		if (searchStatus === 'success') {
@@ -48,27 +52,30 @@ export default function Sidebar({
 		onUsernameAction(trimmed, type);
 	};
 
-	const sidebarWidth = isMobile ? 'min(320px, 80vw)' : drawerWidth;
+	const sidebarWidth = isMobile ? `calc(100vw - ${railWidth}px)` : drawerWidth;
 	const isSidebarVisible = isOpen || isProfilePanelOpen || isNewChatPanelOpen;
 	const containerStyles = {
-		position: 'fixed',
+		position: isMobile ? 'absolute' : 'fixed',
 		top: 0,
-		left: isMobile ? 0 : railWidth,
+		left: railWidth,
 		width: sidebarWidth,
 		minWidth: sidebarWidth,
 		maxWidth: sidebarWidth,
 		height: '100vh',
-		borderRight: '1px solid #1f2937',
-		display: 'flex',
+		maxHeight: '100vh',
+		borderRight: isMobile ? 'none' : '1px solid #1f2937',
+		display: isMobile ? (isSidebarVisible ? 'flex' : 'none') : 'flex',
 		flexDirection: 'column',
 		background: '#020617',
 		overflow: 'hidden',
-		zIndex: 25,
-		boxSizing: 'border-box',
 		overflowX: 'hidden',
-		transform: isSidebarVisible ? 'translateX(0)' : 'translateX(-100%)',
-		transition: 'transform 0.3s ease-in-out',
-		boxShadow: isSidebarVisible ? '4px 0 12px rgba(15, 23, 42, 0.4)' : 'none'
+		overflowY: 'auto',
+		zIndex: isMobile ? 30 : 25,
+		boxSizing: 'border-box',
+		transform: isMobile ? 'none' : (isSidebarVisible ? 'translateX(0)' : 'translateX(-100%)'),
+		transition: isMobile ? 'none' : 'transform 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+		boxShadow: isSidebarVisible ? (isMobile ? 'none' : '4px 0 24px rgba(15, 23, 42, 0.5)') : 'none',
+		WebkitOverflowScrolling: 'touch'
 	};
 
 	const handleSelect = (roomId) => {
@@ -77,6 +84,55 @@ export default function Sidebar({
 			onClose();
 		}
 	};
+
+	// Swipe gesture support for mobile
+	useEffect(() => {
+		if (!isMobile || !sidebarRef.current) return;
+
+		const handleTouchStart = (e) => {
+			touchStartX.current = e.touches[0].clientX;
+			touchStartY.current = e.touches[0].clientY;
+			isDragging.current = false;
+		};
+
+		const handleTouchMove = (e) => {
+			if (!touchStartX.current || !touchStartY.current) return;
+			const deltaX = e.touches[0].clientX - touchStartX.current;
+			const deltaY = e.touches[0].clientY - touchStartY.current;
+			
+			// Only consider horizontal swipes
+			if (Math.abs(deltaX) > Math.abs(deltaY) && Math.abs(deltaX) > 10) {
+				isDragging.current = true;
+			}
+		};
+
+		const handleTouchEnd = (e) => {
+			if (!isDragging.current || !touchStartX.current) return;
+			const deltaX = e.changedTouches[0].clientX - touchStartX.current;
+			
+			// Swipe left to close (if sidebar is open)
+			if (deltaX < -50 && (isOpen || isProfilePanelOpen || isNewChatPanelOpen)) {
+				if (typeof onClose === 'function') {
+					onClose();
+				}
+			}
+			
+			touchStartX.current = 0;
+			touchStartY.current = 0;
+			isDragging.current = false;
+		};
+
+		const sidebar = sidebarRef.current;
+		sidebar.addEventListener('touchstart', handleTouchStart, { passive: true });
+		sidebar.addEventListener('touchmove', handleTouchMove, { passive: true });
+		sidebar.addEventListener('touchend', handleTouchEnd, { passive: true });
+
+		return () => {
+			sidebar.removeEventListener('touchstart', handleTouchStart);
+			sidebar.removeEventListener('touchmove', handleTouchMove);
+			sidebar.removeEventListener('touchend', handleTouchEnd);
+		};
+	}, [isMobile, isOpen, isProfilePanelOpen, isNewChatPanelOpen, onClose]);
 
 	const aboutMessage = typeof user.about === 'string' && user.about.trim() ? user.about.trim() : 'Hey there! I am using this app.';
 	const profileSections = [
@@ -124,13 +180,21 @@ export default function Sidebar({
 					onClick={onClose}
 					style={{
 						position: 'fixed',
-						inset: 0,
-						background: 'rgba(15, 23, 42, 0.6)',
-						zIndex: 15
+						top: 0,
+						left: railWidth,
+						right: 0,
+						bottom: 0,
+						background: 'rgba(15, 23, 42, 0.75)',
+						backdropFilter: 'blur(4px)',
+						WebkitBackdropFilter: 'blur(4px)',
+						zIndex: 15,
+						opacity: (isOpen || isProfilePanelOpen || isNewChatPanelOpen) ? 1 : 0,
+						transition: 'opacity 0.3s ease-in-out',
+						touchAction: 'none'
 					}}
 				/>
 			) : null}
-			<div style={containerStyles}>
+			<div ref={sidebarRef} style={containerStyles}>
 				{/* New Chat Panel */}
 				<div
 					style={{
@@ -167,8 +231,10 @@ export default function Sidebar({
 							type="button"
 							onClick={onCloseNewChatPanel}
 							style={{
-								width: 40,
-								height: 40,
+								minWidth: 44,
+								minHeight: 44,
+								width: 44,
+								height: 44,
 								borderRadius: 12,
 								border: '1px solid #1f2937',
 								background: '#111827',
@@ -176,7 +242,8 @@ export default function Sidebar({
 								alignItems: 'center',
 								justifyContent: 'center',
 								cursor: 'pointer',
-								padding: 0
+								padding: 0,
+								touchAction: 'manipulation'
 							}}
 							aria-label="Back to chats"
 						>
@@ -268,14 +335,16 @@ export default function Sidebar({
 								}
 							}}
 							style={{
+								minHeight: 44,
 								padding: '16px 20px',
-								cursor: 'pointer',
+								cursor: newChatSearchInput.trim() ? 'pointer' : 'not-allowed',
 								display: 'flex',
 								alignItems: 'center',
 								gap: 16,
 								borderBottom: '1px solid #1f2937',
 								transition: 'background 0.2s',
-								opacity: newChatSearchInput.trim() ? 1 : 0.5
+								opacity: newChatSearchInput.trim() ? 1 : 0.5,
+								touchAction: 'manipulation'
 							}}
 							onMouseEnter={(e) => {
 								if (newChatSearchInput.trim()) {
@@ -283,6 +352,12 @@ export default function Sidebar({
 								}
 							}}
 							onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
+							onTouchStart={(e) => {
+								if (newChatSearchInput.trim()) {
+									e.currentTarget.style.background = '#0b1220';
+								}
+							}}
+							onTouchEnd={(e) => e.currentTarget.style.background = 'transparent'}
 						>
 							<div
 								style={{
@@ -354,8 +429,10 @@ export default function Sidebar({
 							type="button"
 							onClick={() => onCloseProfilePanel?.()}
 							style={{
-								width: 40,
-								height: 40,
+								minWidth: 44,
+								minHeight: 44,
+								width: 44,
+								height: 44,
 								borderRadius: 12,
 								border: '1px solid #1f2937',
 								background: '#111827',
@@ -363,7 +440,8 @@ export default function Sidebar({
 								alignItems: 'center',
 								justifyContent: 'center',
 								cursor: 'pointer',
-								padding: 0
+								padding: 0,
+								touchAction: 'manipulation'
 							}}
 							aria-label="Close profile"
 						>
@@ -460,18 +538,21 @@ export default function Sidebar({
 								onClick={onLogout}
 								style={{
 									width: '100%',
+									minHeight: 44,
 									display: 'flex',
 									alignItems: 'center',
 									justifyContent: 'center',
 									gap: 10,
-									padding: '12px 16px',
+									padding: '14px 16px',
 									borderRadius: 10,
 									border: '1px solid rgba(239, 68, 68, 0.4)',
 									background: 'rgba(239, 68, 68, 0.08)',
 									color: '#f87171',
 									fontWeight: 600,
+									fontSize: 15,
 									cursor: 'pointer',
-									transition: 'background 0.2s, border 0.2s'
+									transition: 'background 0.2s, border 0.2s',
+									touchAction: 'manipulation'
 								}}
 								onMouseEnter={(e) => {
 									e.currentTarget.style.background = 'rgba(239, 68, 68, 0.16)';
@@ -523,44 +604,43 @@ export default function Sidebar({
 						pointerEvents: (isProfilePanelOpen || isNewChatPanelOpen) ? 'none' : 'auto'
 					}}
 				>
-					{/* Header with Logout button (only on mobile) */}
-					{isMobile ? (
+					<div style={{ overflowY: 'auto', flex: 1, paddingBottom: 24, width: '100%', boxSizing: 'border-box' }}>
+						{/* Chats Header with Back Button */}
 						<div
 							style={{
-								padding: 16,
-								borderBottom: '1px solid #1f2937',
+								padding: '12px 12px 4px',
 								display: 'flex',
 								alignItems: 'center',
-								justifyContent: 'flex-end',
-								gap: 8,
-								position: 'sticky',
-								top: 0,
-								background: '#0f172a',
-								zIndex: 1,
-								boxShadow: '0 2px 4px rgba(15, 23, 42, 0.4)',
-								width: '100%',
-								boxSizing: 'border-box'
+								gap: 12
 							}}
 						>
-							<button
-								type="button"
-								onClick={onClose}
-								style={{ background: '#1f2937', border: 0, color: '#e2e8f0', padding: '6px 10px', borderRadius: 6 }}
-								aria-label="Close sidebar"
-							>
-								Close
-							</button>
-							<button
-								type="button"
-								onClick={onLogout}
-								style={{ background: '#ef4444', border: 0, color: 'white', padding: '6px 10px', borderRadius: 6 }}
-							>
-								Logout
-							</button>
+							{onClose ? (
+								<button
+									type="button"
+									onClick={onClose}
+									style={{
+										minWidth: 44,
+										minHeight: 44,
+										width: 44,
+										height: 44,
+										borderRadius: 12,
+										border: '1px solid #1f2937',
+										background: '#111827',
+										display: 'flex',
+										alignItems: 'center',
+										justifyContent: 'center',
+										cursor: 'pointer',
+										padding: 0,
+										touchAction: 'manipulation',
+										flexShrink: 0
+									}}
+									aria-label="Close chats"
+								>
+									{backArrowIcon}
+								</button>
+							) : null}
+							<div style={{ fontSize: 'clamp(11px, 3vw, 12px)', textTransform: 'uppercase', letterSpacing: 0.6, color: '#64748b' }}>Chats</div>
 						</div>
-					) : null}
-					<div style={{ overflowY: 'auto', flex: 1, paddingBottom: 24, width: '100%', boxSizing: 'border-box' }}>
-						<div style={{ padding: '12px 12px 4px', fontSize: 12, textTransform: 'uppercase', letterSpacing: 0.6, color: '#64748b' }}>Chats</div>
 						{rooms.map((room) => {
 							const isActive = room._id === activeRoomId;
 							const onlineCount = room.participants.filter((p) => p.isOnline).length;
@@ -569,16 +649,26 @@ export default function Sidebar({
 								<div
 									key={room._id}
 									onClick={() => handleSelect(room._id)}
-									style={{ padding: 12, cursor: 'pointer', background: isActive ? '#0b1220' : 'transparent', borderBottom: '1px solid #111827' }}
+									style={{
+										minHeight: 44,
+										padding: '14px 12px',
+										cursor: 'pointer',
+										background: isActive ? '#0b1220' : 'transparent',
+										borderBottom: '1px solid #111827',
+										touchAction: 'manipulation',
+										transition: 'background 0.15s'
+									}}
+									onTouchStart={(e) => e.currentTarget.style.background = '#0b1220'}
+									onTouchEnd={(e) => e.currentTarget.style.background = isActive ? '#0b1220' : 'transparent'}
 								>
 									<div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-										<div>
-											<div style={{ fontWeight: 600 }}>{title}</div>
-											{subtitle ? <div style={{ fontSize: 12, color: '#94a3b8' }}>{subtitle}</div> : null}
+										<div style={{ flex: 1, minWidth: 0 }}>
+											<div style={{ fontWeight: 600, fontSize: 'clamp(14px, 3.5vw, 16px)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{title}</div>
+											{subtitle ? <div style={{ fontSize: 'clamp(11px, 3vw, 12px)', color: '#94a3b8', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{subtitle}</div> : null}
 										</div>
-										<div style={{ fontSize: 12, color: '#22c55e' }}>{onlineCount} online</div>
+										<div style={{ fontSize: 'clamp(10px, 2.5vw, 12px)', color: '#22c55e', flexShrink: 0, marginLeft: 8 }}>{onlineCount} online</div>
 									</div>
-									<div style={{ fontSize: 12, color: '#94a3b8', marginTop: 4 }}>{room.latestMessage?.content || 'No messages yet'}</div>
+									<div style={{ fontSize: 'clamp(11px, 3vw, 12px)', color: '#94a3b8', marginTop: 4, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{room.latestMessage?.content || 'No messages yet'}</div>
 								</div>
 							);
 						})}

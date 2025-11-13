@@ -2,15 +2,25 @@ import { useEffect, useRef, useState } from 'react'
 
 function Bubble({ mine, content, timestamp, senderLabel, showSender }) {
 	return (
-		<div style={{ display: 'flex', justifyContent: mine ? 'flex-end' : 'flex-start' }}>
-			<div style={{ maxWidth: 520, background: mine ? '#1d4ed8' : '#111827', color: 'white', padding: '8px 12px', borderRadius: 12, margin: '4px 8px' }}>
+		<div style={{ display: 'flex', justifyContent: mine ? 'flex-end' : 'flex-start', padding: '2px 0' }}>
+			<div style={{
+				maxWidth: 'min(520px, 85vw)',
+				background: mine ? '#1d4ed8' : '#111827',
+				color: 'white',
+				padding: '10px 14px',
+				borderRadius: 12,
+				margin: '4px 8px',
+				wordWrap: 'break-word',
+				overflowWrap: 'break-word',
+				boxSizing: 'border-box'
+			}}>
 				{showSender ? (
 					<div style={{ fontWeight: 600, color: mine ? '#bfdbfe' : '#38bdf8', marginBottom: 4 }}>
 						{senderLabel || 'Unknown'}
 					</div>
 				) : null}
 				<div>{content}</div>
-				<div style={{ display: 'flex', alignItems: 'center', fontSize: 11, marginTop: 4, opacity: 0.85 }}>
+				<div style={{ display: 'flex', alignItems: 'center', fontSize: 'clamp(10px, 2.5vw, 11px)', marginTop: 4, opacity: 0.85 }}>
 					<span>{new Date(timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
 				</div>
 			</div>
@@ -95,25 +105,31 @@ export default function ChatWindow({ room, messages, onSend, onTyping, typing, m
 					paddingBottom: 16,
 					paddingLeft: leftInset,
 					borderBottom: '1px solid #1f2937',
-					flexShrink: 0
+					flexShrink: 0,
+					width: '100%',
+					boxSizing: 'border-box'
 				}}
 			>
 				<div>
-					<div style={{ fontWeight: 700 }}>{roomTitle}</div>
-					{roomSubtitle ? <div style={{ fontSize: 12, color: '#94a3b8' }}>{roomSubtitle}</div> : null}
+					<div style={{ fontWeight: 700, fontSize: 'clamp(16px, 4vw, 18px)' }}>{roomTitle}</div>
+					{roomSubtitle ? <div style={{ fontSize: 'clamp(11px, 3vw, 12px)', color: '#94a3b8' }}>{roomSubtitle}</div> : null}
 				</div>
-				<div style={{ fontSize: 12, color: '#94a3b8', marginTop: 4 }}>{statusText}</div>
+				<div style={{ fontSize: 'clamp(11px, 3vw, 12px)', color: '#94a3b8', marginTop: 4 }}>{statusText}</div>
 			</div>
 			<div
 				ref={listRef}
 				style={{
 					flex: 1,
 					overflowY: 'auto',
+					overflowX: 'hidden',
 					paddingTop: 8,
 					paddingRight: 8,
 					paddingBottom: 88,
 					paddingLeft: Math.max(leftInset - 8, 0),
-					scrollbarGutter: 'stable'
+					scrollbarGutter: 'stable',
+					WebkitOverflowScrolling: 'touch',
+					width: '100%',
+					boxSizing: 'border-box'
 				}}
 			>
 				{messages.map(m => {
@@ -140,17 +156,50 @@ export default function ChatWindow({ room, messages, onSend, onTyping, typing, m
 					gap: 8,
 					paddingTop: 12,
 					paddingRight: 12,
-					paddingBottom: 12,
+					paddingBottom: 'max(12px, env(safe-area-inset-bottom))',
 					paddingLeft: leftInset,
 					borderTop: '1px solid #1f2937',
 					background: '#0f172a',
 					position: 'sticky',
 					bottom: 0,
-					flexShrink: 0
+					flexShrink: 0,
+					width: '100%',
+					boxSizing: 'border-box'
 				}}
 			>
-				<input value={text} onChange={e => handleInput(e.target.value)} placeholder="Type a message" style={{ flex: 1, padding: 12, borderRadius: 6, border: '1px solid #374151', background: '#0b1220', color: '#e2e8f0' }} />
-				<button style={{ padding: '0 16px', borderRadius: 6, background: '#2563eb', border: 0, color: 'white' }}>Send</button>
+				<input
+					value={text}
+					onChange={e => handleInput(e.target.value)}
+					placeholder="Type a message"
+					style={{
+						flex: 1,
+						minHeight: 44,
+						padding: '12px 16px',
+						borderRadius: 8,
+						border: '1px solid #374151',
+						background: '#0b1220',
+						color: '#e2e8f0',
+						fontSize: 15,
+						boxSizing: 'border-box',
+						touchAction: 'manipulation'
+					}}
+				/>
+				<button
+					style={{
+						minWidth: 44,
+						minHeight: 44,
+						padding: '0 20px',
+						borderRadius: 8,
+						background: '#2563eb',
+						border: 0,
+						color: 'white',
+						fontSize: 15,
+						fontWeight: 500,
+						touchAction: 'manipulation'
+					}}
+				>
+					Send
+				</button>
 			</form>
 		</div>
 	)
