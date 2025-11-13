@@ -18,7 +18,7 @@ function Bubble({ mine, content, timestamp, senderLabel, showSender }) {
 	)
 }
 
-export default function ChatWindow({ room, messages, onSend, onTyping, typing, meId }) {
+export default function ChatWindow({ room, messages, onSend, onTyping, typing, meId, leftInset = 16 }) {
 	const [text, setText] = useState('')
 	const listRef = useRef(null)
 	const typingRef = useRef(false)
@@ -88,7 +88,16 @@ export default function ChatWindow({ room, messages, onSend, onTyping, typing, m
 
 	return (
 		<div style={{ display: 'flex', flexDirection: 'column', height: '100%', position: 'relative' }}>
-			<div style={{ padding: 16, borderBottom: '1px solid #1f2937', flexShrink: 0 }}>
+			<div
+				style={{
+					paddingTop: 16,
+					paddingRight: 16,
+					paddingBottom: 16,
+					paddingLeft: leftInset,
+					borderBottom: '1px solid #1f2937',
+					flexShrink: 0
+				}}
+			>
 				<div>
 					<div style={{ fontWeight: 700 }}>{roomTitle}</div>
 					{roomSubtitle ? <div style={{ fontSize: 12, color: '#94a3b8' }}>{roomSubtitle}</div> : null}
@@ -100,7 +109,10 @@ export default function ChatWindow({ room, messages, onSend, onTyping, typing, m
 				style={{
 					flex: 1,
 					overflowY: 'auto',
-					padding: '8px 8px 88px',
+					paddingTop: 8,
+					paddingRight: 8,
+					paddingBottom: 88,
+					paddingLeft: Math.max(leftInset - 8, 0),
 					scrollbarGutter: 'stable'
 				}}
 			>
@@ -126,7 +138,10 @@ export default function ChatWindow({ room, messages, onSend, onTyping, typing, m
 				style={{
 					display: 'flex',
 					gap: 8,
-					padding: 12,
+					paddingTop: 12,
+					paddingRight: 12,
+					paddingBottom: 12,
+					paddingLeft: leftInset,
 					borderTop: '1px solid #1f2937',
 					background: '#0f172a',
 					position: 'sticky',

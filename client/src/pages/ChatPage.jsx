@@ -24,6 +24,8 @@ export default function ChatPage() {
 	const [searchStatus, setSearchStatus] = useState('idle')
 	const [searchMessage, setSearchMessage] = useState('')
 	const [searchError, setSearchError] = useState('')
+	const [isSidebarOpen, setSidebarOpen] = useState(true)
+	const [isMobile, setIsMobile] = useState(false)
 	const socketRef = useRef(null)
 	const activeRoomRef = useRef('')
 	const roomsRef = useRef([])
@@ -300,8 +302,150 @@ export default function ChatPage() {
 	const activeRoom = rooms.find(r => r._id === activeRoomId)
 	const activeTyping = Object.entries(typing[activeRoomId] || {}).some(([id, isTyping]) => isTyping && id !== user.id)
 
+	useEffect(() => {
+		const handleResize = () => {
+			const mobile = window.matchMedia('(max-width: 900px)').matches
+			setIsMobile(mobile)
+		}
+		handleResize()
+		window.addEventListener('resize', handleResize)
+		return () => window.removeEventListener('resize', handleResize)
+	}, [])
+
+	useEffect(() => {
+		setSidebarOpen(!isMobile)
+	}, [isMobile])
+
+	const toggleSidebar = () => {
+		setSidebarOpen(prev => !prev)
+	}
+
+	const railWidth = 72
+	const drawerWidth = 320
+
+	const shellStyle = {
+		width: railWidth,
+		background: '#020617',
+		borderRight: '1px solid #1f2937',
+		display: 'flex',
+		flexDirection: 'column',
+		alignItems: 'center',
+		justifyContent: 'space-between',
+		padding: '16px 0',
+		position: 'relative',
+		zIndex: 30
+	}
+
+	const shellTopStyle = {
+		display: 'flex',
+		flexDirection: 'column',
+		alignItems: 'center',
+		gap: 12
+	}
+
+	const shellButtonStyle = {
+		width: 44,
+		height: 44,
+		borderRadius: 16,
+		border: '1px solid #1f2937',
+		background: '#111827',
+		display: 'flex',
+		alignItems: 'center',
+		justifyContent: 'center',
+		cursor: 'pointer',
+		boxShadow: '0 6px 18px rgba(15, 23, 42, 0.45)'
+	}
+
+	const hamburgerLineStyle = {
+		width: 20,
+		height: 2,
+		background: '#e2e8f0',
+		borderRadius: 999
+	}
+
+	const settingsIcon = (
+		<svg width="22" height="22" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+			<path
+				d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.757.426 1.757 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.757-2.924 1.757-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.757-.426-1.757-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.607 2.286.07 2.572-1.065z"
+				stroke="#94a3b8"
+				strokeWidth="1.5"
+				strokeLinecap="round"
+				strokeLinejoin="round"
+			/>
+			<path
+				d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
+				stroke="#e2e8f0"
+				strokeWidth="1.5"
+				strokeLinecap="round"
+				strokeLinejoin="round"
+			/>
+		</svg>
+	)
+
+	const profileIcon = (
+		<svg width="28" height="28" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+			<path
+				d="M12 12c2.485 0 4.5-2.015 4.5-4.5S14.485 3 12 3 7.5 5.015 7.5 7.5 9.515 12 12 12z"
+				stroke="#cbd5f5"
+				strokeWidth="1.5"
+				strokeLinecap="round"
+				strokeLinejoin="round"
+			/>
+			<path
+				d="M5.25 20.25c0-3.728 3.022-6.75 6.75-6.75s6.75 3.022 6.75 6.75"
+				stroke="#cbd5f5"
+				strokeWidth="1.5"
+				strokeLinecap="round"
+				strokeLinejoin="round"
+			/>
+		</svg>
+	)
+
+	const chatAreaStyle = {
+		marginLeft: isMobile ? 0 : railWidth,
+		flex: 1,
+		minHeight: '100vh',
+		display: 'flex',
+		transition: 'margin-left 0.3s ease-in-out'
+	}
+
 	return (
-		<div style={{ display: 'flex', height: '100vh', background: '#0f172a' }}>
+		<div style={{ display: 'flex', height: '100vh', background: '#0f172a', position: 'relative' }}>
+			<div style={shellStyle}>
+				<div style={shellTopStyle}>
+					<button
+						type="button"
+						onClick={toggleSidebar}
+						style={{ ...shellButtonStyle, flexDirection: 'column', gap: 6 }}
+						aria-label={isSidebarOpen ? 'Hide sidebar' : 'Show sidebar'}
+					>
+						<span style={hamburgerLineStyle} />
+						<span style={hamburgerLineStyle} />
+						<span style={hamburgerLineStyle} />
+					</button>
+					<button
+						type="button"
+						style={shellButtonStyle}
+						aria-label="Open settings"
+					>
+						{settingsIcon}
+					</button>
+				</div>
+				<div
+					style={{
+						width: 48,
+						height: 48,
+						borderRadius: 16,
+						border: '1px solid #1f2937',
+						background: '#1e293b',
+						display: 'flex',
+						alignItems: 'center',
+						justifyContent: 'center'
+					}}
+				>
+					{profileIcon}
+				</div>
+			</div>
 			<Sidebar
 				rooms={rooms}
 				activeRoomId={activeRoomId}
@@ -313,8 +457,14 @@ export default function ChatPage() {
 				searchLoading={searchLoading}
 				user={user}
 				onLogout={logout}
+				isOpen={isSidebarOpen}
+				isMobile={isMobile}
+				onClose={() => setSidebarOpen(false)}
+				onToggleSidebar={toggleSidebar}
+				railWidth={railWidth}
+				drawerWidth={drawerWidth}
 			/>
-			<div style={{ marginLeft: 320, flex: 1, minHeight: '100vh', display: 'flex' }}>
+			<div style={chatAreaStyle}>
 				<div style={{ flex: 1 }}>
 					<ChatWindow
 						room={activeRoom}
@@ -323,6 +473,7 @@ export default function ChatPage() {
 						onTyping={setTypingState}
 						typing={activeTyping}
 						meId={user.id}
+						leftInset={isMobile ? 16 : (isSidebarOpen ? Math.max(drawerWidth - 16, 0) : 0)}
 					/>
 				</div>
 			</div>
