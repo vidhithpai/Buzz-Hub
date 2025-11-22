@@ -78,3 +78,4 @@ Open the printed URL (default `http://localhost:5173`) to explore BuzzHub.
 2. Start a direct chat or create a group; BuzzHub broadcasts typing and presence states in real time.
 
 Happy chatting with **BuzzHub**!
+# Full-Stack-App
